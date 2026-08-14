@@ -14,7 +14,9 @@ import {
 import { db } from '@/firebase/client'
 import { generateRoomCode } from '@/utils/roomCode'
 import { DEFAULT_ACCENT_COLOR } from '@/constants/theme'
-import type { AccentColorId, Room } from '@/types/room'
+import { computeAverage, hasConsensus } from '@/utils/roundStats'
+import type { AccentColorId, DeckId, Room, RoundHistoryEntry } from '@/types/room'
+import type { ParticipantWithId } from './useParticipants'
 import { useAuth } from './useAuth'
 
 const ROOM_TTL_DAYS = 7
@@ -24,7 +26,19 @@ function expiryTimestamp(days: number): Timestamp {
   return Timestamp.fromMillis(Date.now() + days * 24 * 60 * 60 * 1000)
 }
 
-export async function createRoom(): Promise<string> {
+function buildHistoryEntry(room: Room, participants: ParticipantWithId[]): RoundHistoryEntry {
+  const votes = participants.filter((p) => p.role === 'voter').map((p) => p.vote)
+  return {
+    ticket: room.currentTicket,
+    round: room.round,
+    votes: participants.filter((p) => p.role === 'voter').map((p) => ({ name: p.name, vote: p.vote })),
+    average: computeAverage(votes),
+    consensus: hasConsensus(votes),
+    revealedAt: Timestamp.now(),
+  }
+}
+
+export async function createRoom(deck: DeckId = 'fibonacci'): Promise<string> {
   const { waitForUser } = useAuth()
   const user = await waitForUser()
 
@@ -37,14 +51,16 @@ export async function createRoom(): Promise<string> {
     await setDoc(roomRef, {
       createdAt: serverTimestamp(),
       hostUid: user.uid,
-      deck: 'fibonacci',
+      deck,
       revealed: false,
       round: 1,
       tickets: [],
       currentTicket: null,
+      history: [],
       accentColor: DEFAULT_ACCENT_COLOR,
       lastActivityAt: serverTimestamp(),
       expiresAt: expiryTimestamp(ROOM_TTL_DAYS),
+      roundStartedAt: serverTimestamp(),
     })
     return code
   }
@@ -85,11 +101,15 @@ export function useRoom(roomCode: Ref<string>) {
     })
   }
 
-  async function resetRound() {
+  async function resetRound(participants: ParticipantWithId[]) {
     await updateDoc(doc(db, 'rooms', roomCode.value), {
       revealed: false,
       round: increment(1),
       lastActivityAt: serverTimestamp(),
+      roundStartedAt: serverTimestamp(),
+      ...(room.value?.revealed
+        ? { history: arrayUnion(buildHistoryEntry(room.value, participants)) }
+        : {}),
     })
   }
 
@@ -121,7 +141,7 @@ export function useRoom(roomCode: Ref<string>) {
     })
   }
 
-  async function nextTicket() {
+  async function nextTicket(participants: ParticipantWithId[]) {
     const tickets = room.value?.tickets ?? []
     if (tickets.length === 0) return
     const [next, ...rest] = tickets
@@ -131,6 +151,10 @@ export function useRoom(roomCode: Ref<string>) {
       revealed: false,
       round: increment(1),
       lastActivityAt: serverTimestamp(),
+      roundStartedAt: serverTimestamp(),
+      ...(room.value?.revealed
+        ? { history: arrayUnion(buildHistoryEntry(room.value, participants)) }
+        : {}),
     })
   }
 

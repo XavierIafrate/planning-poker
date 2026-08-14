@@ -2,11 +2,14 @@
 import { ref } from 'vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
-import type { ParticipantRole } from '@/types/room'
+import JobRolePicker from '@/components/JobRolePicker.vue'
+import { DEFAULT_JOB_ROLE } from '@/constants/jobRoles'
+import type { JobRole, ParticipantRole } from '@/types/room'
 
-const emit = defineEmits<{ submit: [name: string, role: ParticipantRole] }>()
+const emit = defineEmits<{ submit: [name: string, role: ParticipantRole, jobRole: JobRole] }>()
 
 const name = ref('')
+const jobRole = ref<JobRole>(DEFAULT_JOB_ROLE)
 const error = ref('')
 
 function handleSubmit(role: ParticipantRole = 'voter') {
@@ -19,7 +22,7 @@ function handleSubmit(role: ParticipantRole = 'voter') {
     error.value = 'Keep it under 40 characters'
     return
   }
-  emit('submit', trimmed, role)
+  emit('submit', trimmed, role, jobRole.value)
 }
 </script>
 
@@ -44,6 +47,8 @@ function handleSubmit(role: ParticipantRole = 'voter') {
       >
         {{ error }}
       </p>
+      <label>Job role</label>
+      <JobRolePicker v-model="jobRole" />
       <div class="actions">
         <BaseButton
           variant="primary"

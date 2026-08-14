@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { createRoom } from '@/composables/useRoom'
 import { isValidRoomCode, normalizeRoomCode } from '@/utils/roomCode'
+import { DECK_LABELS } from '@/constants/decks'
+import type { DeckId } from '@/types/room'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 
@@ -12,12 +14,14 @@ const joinCode = ref('')
 const joinError = ref('')
 const creating = ref(false)
 const createError = ref('')
+const selectedDeck = ref<DeckId>('fibonacci')
+const deckOptions = Object.entries(DECK_LABELS) as [DeckId, string][]
 
 async function handleCreate() {
   creating.value = true
   createError.value = ''
   try {
-    const code = await createRoom()
+    const code = await createRoom(selectedDeck.value)
     router.push({ name: 'room', params: { code } })
   } catch (error) {
     createError.value = error instanceof Error ? error.message : 'Something went wrong'
@@ -46,6 +50,30 @@ function handleJoin() {
 
     <section class="panel">
       <h2>Start a new session</h2>
+      <div class="deck-choice">
+        <span
+          id="deck-label"
+          class="deck-choice-label"
+        >Deck</span>
+        <div
+          class="deck-options"
+          role="radiogroup"
+          aria-labelledby="deck-label"
+        >
+          <button
+            v-for="[id, label] in deckOptions"
+            :key="id"
+            type="button"
+            class="deck-option"
+            :class="{ active: selectedDeck === id }"
+            role="radio"
+            :aria-checked="selectedDeck === id"
+            @click="selectedDeck = id"
+          >
+            {{ label }}
+          </button>
+        </div>
+      </div>
       <BaseButton
         variant="primary"
         type="button"
@@ -121,6 +149,47 @@ h1 {
 .panel h2 {
   margin-top: 0;
   font-size: 1rem;
+}
+
+.deck-choice {
+  margin-bottom: 1rem;
+}
+
+.deck-choice-label {
+  display: block;
+  font-size: 0.8125rem;
+  opacity: 0.7;
+  margin-bottom: 0.375rem;
+}
+
+.deck-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.deck-option {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-background);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.deck-option:hover {
+  border-color: var(--color-border-hover);
+}
+
+.deck-option.active {
+  border-color: var(--color-accent, var(--color-heading));
+  background: var(--color-accent, var(--color-heading));
+  color: var(--color-background);
 }
 
 form {
