@@ -10,11 +10,20 @@ import ParticipantList from '@/components/ParticipantList.vue'
 import HostControls from '@/components/HostControls.vue'
 import RevealSummary from '@/components/RevealSummary.vue'
 import RoomShareBox from '@/components/RoomShareBox.vue'
+import TicketQueue from '@/components/TicketQueue.vue'
 
 const route = useRoute()
 const code = computed(() => String(route.params.code))
 
-const { room, loading: roomLoading, revealVotes, resetRound } = useRoom(code)
+const {
+  room,
+  loading: roomLoading,
+  revealVotes,
+  resetRound,
+  addTickets,
+  removeTicket,
+  nextTicket,
+} = useRoom(code)
 const round = computed(() => room.value?.round)
 const {
   participants,
@@ -25,6 +34,7 @@ const {
 } = useParticipants(code, round)
 
 const deck = computed(() => (room.value ? DECKS[room.value.deck] : []))
+const isHost = computed(() => !!room.value && !!self.value && room.value.hostUid === self.value.uid)
 </script>
 
 <template>
@@ -45,11 +55,28 @@ const deck = computed(() => (room.value ? DECKS[room.value.deck] : []))
         <div class="room-header">
           <RoomShareBox :code="code" />
           <HostControls
+            v-if="isHost"
             :revealed="room.revealed"
             @reveal="revealVotes"
             @reset="resetRound"
           />
         </div>
+
+        <TicketQueue
+          v-if="isHost"
+          :tickets="room.tickets"
+          :current-ticket="room.currentTicket"
+          @add="addTickets"
+          @remove="removeTicket"
+          @next="nextTicket"
+        />
+
+        <p
+          v-if="room.currentTicket"
+          class="current-ticket"
+        >
+          Now estimating: <strong>{{ room.currentTicket }}</strong>
+        </p>
 
         <RevealSummary
           v-if="room.revealed"
@@ -102,5 +129,9 @@ h2 {
   letter-spacing: 0.05em;
   opacity: 0.7;
   margin-bottom: 0.75rem;
+}
+
+.current-ticket {
+  margin: 0;
 }
 </style>

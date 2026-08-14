@@ -1,5 +1,7 @@
 import { onUnmounted, ref, watch, type Ref } from 'vue'
 import {
+  arrayRemove,
+  arrayUnion,
   doc,
   getDoc,
   increment,
@@ -37,6 +39,8 @@ export async function createRoom(): Promise<string> {
       deck: 'fibonacci',
       revealed: false,
       round: 1,
+      tickets: [],
+      currentTicket: null,
       lastActivityAt: serverTimestamp(),
       expiresAt: expiryTimestamp(ROOM_TTL_DAYS),
     })
@@ -87,5 +91,34 @@ export function useRoom(roomCode: Ref<string>) {
     })
   }
 
-  return { room, loading, revealVotes, resetRound }
+  async function addTickets(titles: string[]) {
+    const cleaned = titles.map((title) => title.trim()).filter(Boolean)
+    if (cleaned.length === 0) return
+    await updateDoc(doc(db, 'rooms', roomCode.value), {
+      tickets: arrayUnion(...cleaned),
+      lastActivityAt: serverTimestamp(),
+    })
+  }
+
+  async function removeTicket(title: string) {
+    await updateDoc(doc(db, 'rooms', roomCode.value), {
+      tickets: arrayRemove(title),
+      lastActivityAt: serverTimestamp(),
+    })
+  }
+
+  async function nextTicket() {
+    const tickets = room.value?.tickets ?? []
+    if (tickets.length === 0) return
+    const [next, ...rest] = tickets
+    await updateDoc(doc(db, 'rooms', roomCode.value), {
+      currentTicket: next,
+      tickets: rest,
+      revealed: false,
+      round: increment(1),
+      lastActivityAt: serverTimestamp(),
+    })
+  }
+
+  return { room, loading, revealVotes, resetRound, addTickets, removeTicket, nextTicket }
 }

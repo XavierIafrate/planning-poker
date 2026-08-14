@@ -14,12 +14,18 @@ service cloud.firestore {
         && request.resource.data.hostUid == request.auth.uid
         && request.resource.data.revealed == false
         && request.resource.data.round == 1
+        && request.resource.data.tickets == []
+        && request.resource.data.currentTicket == null
         && request.resource.data.keys().hasOnly(
-             ['createdAt', 'hostUid', 'deck', 'revealed', 'round', 'lastActivityAt', 'expiresAt']);
+             ['createdAt', 'hostUid', 'deck', 'revealed', 'round', 'tickets', 'currentTicket', 'lastActivityAt', 'expiresAt']);
 
       allow update: if isSignedIn()
+        && resource.data.hostUid == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['revealed', 'round', 'lastActivityAt', 'expiresAt']);
+             .hasOnly(['revealed', 'round', 'tickets', 'currentTicket', 'lastActivityAt', 'expiresAt'])
+        && request.resource.data.tickets is list
+        && request.resource.data.tickets.size() <= 200
+        && (request.resource.data.currentTicket == null || request.resource.data.currentTicket is string);
 
       allow delete: if false;
 

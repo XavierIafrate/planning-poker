@@ -8,6 +8,8 @@ export interface Room {
   deck: DeckId
   revealed: boolean
   round: number
+  tickets: string[]
+  currentTicket: string | null
   lastActivityAt: Timestamp
   expiresAt: Timestamp
 }
