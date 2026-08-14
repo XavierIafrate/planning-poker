@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import ThemeToggle from '@/components/ThemeToggle.vue'
-import ColorblindToggle from '@/components/ColorblindToggle.vue'
 </script>
 
 <template>
@@ -14,7 +13,6 @@ import ColorblindToggle from '@/components/ColorblindToggle.vue'
         Planning Poker
       </RouterLink>
       <div class="header-controls">
-        <ColorblindToggle />
         <ThemeToggle />
       </div>
     </header>
