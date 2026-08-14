@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseTextarea from '@/components/base/BaseTextarea.vue'
 
 defineProps<{
   tickets: string[]
@@ -9,6 +11,7 @@ defineProps<{
 const emit = defineEmits<{
   add: [titles: string[]]
   remove: [title: string]
+  move: [index: number, direction: 'up' | 'down']
   next: []
 }>()
 
@@ -30,14 +33,17 @@ function handleAdd() {
       class="add-form"
       @submit.prevent="handleAdd"
     >
-      <textarea
+      <BaseTextarea
         v-model="input"
         placeholder="Paste ticket titles, one per line"
         rows="3"
       />
-      <button type="submit">
+      <BaseButton
+        type="submit"
+        class="add-button"
+      >
         Add to queue
-      </button>
+      </BaseButton>
     </form>
 
     <ul
@@ -45,29 +51,53 @@ function handleAdd() {
       class="upcoming"
     >
       <li
-        v-for="ticket in tickets"
+        v-for="(ticket, index) in tickets"
         :key="ticket"
       >
         <span>{{ ticket }}</span>
-        <button
-          type="button"
-          class="remove"
-          aria-label="Remove ticket"
-          @click="emit('remove', ticket)"
-        >
-          ✕
-        </button>
+        <div class="ticket-actions">
+          <BaseButton
+            variant="ghost"
+            type="button"
+            class="reorder"
+            aria-label="Move ticket up"
+            :disabled="index === 0"
+            @click="emit('move', index, 'up')"
+          >
+            ↑
+          </BaseButton>
+          <BaseButton
+            variant="ghost"
+            type="button"
+            class="reorder"
+            aria-label="Move ticket down"
+            :disabled="index === tickets.length - 1"
+            @click="emit('move', index, 'down')"
+          >
+            ↓
+          </BaseButton>
+          <BaseButton
+            variant="ghost"
+            type="button"
+            class="remove"
+            aria-label="Remove ticket"
+            @click="emit('remove', ticket)"
+          >
+            ✕
+          </BaseButton>
+        </div>
       </li>
     </ul>
 
-    <button
+    <BaseButton
+      variant="primary"
       type="button"
       class="next"
       :disabled="tickets.length === 0"
       @click="emit('next')"
     >
       {{ currentTicket ? 'Next ticket' : 'Start voting' }}
-    </button>
+    </BaseButton>
   </div>
 </template>
 
@@ -95,22 +125,9 @@ function handleAdd() {
   gap: 0.5rem;
 }
 
-textarea {
-  padding: 0.5rem 0.75rem;
-  font-family: inherit;
-  resize: vertical;
-}
-
-.add-form button,
+.add-button,
 .next {
-  padding: 0.5rem 1rem;
-  cursor: pointer;
   align-self: flex-start;
-}
-
-.next:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .upcoming {
@@ -132,15 +149,24 @@ textarea {
   border-radius: 0.375rem;
 }
 
-.remove {
-  background: none;
-  border: none;
-  cursor: pointer;
-  opacity: 0.6;
-  padding: 0 0.25rem;
+.ticket-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
 }
 
+.reorder,
+.remove {
+  opacity: 0.6;
+}
+
+.reorder:hover:not(:disabled),
 .remove:hover {
   opacity: 1;
+}
+
+.reorder:disabled {
+  opacity: 0.25;
 }
 </style>

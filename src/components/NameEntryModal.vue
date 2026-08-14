@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
+import type { ParticipantRole } from '@/types/room'
 
-const emit = defineEmits<{ submit: [name: string] }>()
+const emit = defineEmits<{ submit: [name: string, role: ParticipantRole] }>()
 
 const name = ref('')
 const error = ref('')
 
-function handleSubmit() {
+function handleSubmit(role: ParticipantRole = 'voter') {
   const trimmed = name.value.trim()
   if (!trimmed) {
     error.value = 'Enter a name so others can see who you are'
@@ -16,7 +19,7 @@ function handleSubmit() {
     error.value = 'Keep it under 40 characters'
     return
   }
-  emit('submit', trimmed)
+  emit('submit', trimmed, role)
 }
 </script>
 
@@ -24,26 +27,40 @@ function handleSubmit() {
   <div class="overlay">
     <form
       class="modal"
-      @submit.prevent="handleSubmit"
+      @submit.prevent="handleSubmit()"
     >
       <h2>Join this room</h2>
       <label for="name">Your name</label>
-      <input
+      <BaseInput
         id="name"
         v-model="name"
         type="text"
         autofocus
         maxlength="40"
-      >
+      />
       <p
         v-if="error"
         class="error"
       >
         {{ error }}
       </p>
-      <button type="submit">
-        Join
-      </button>
+      <div class="actions">
+        <BaseButton
+          variant="primary"
+          type="submit"
+          class="submit-button"
+        >
+          Join to vote
+        </BaseButton>
+        <BaseButton
+          variant="ghost"
+          type="button"
+          class="observer-button"
+          @click="handleSubmit('observer')"
+        >
+          Join as observer
+        </BaseButton>
+      </div>
     </form>
   </div>
 </template>
@@ -70,18 +87,18 @@ function handleSubmit() {
 }
 
 .modal h2 {
+  font-family: var(--font-display);
   margin: 0 0 0.5rem;
-  font-size: 1rem;
+  font-size: 1.5rem;
+  letter-spacing: 0.02em;
 }
 
-input {
-  padding: 0.5rem 0.75rem;
-}
-
-button {
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.375rem;
   margin-top: 0.5rem;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
 }
 
 .error {

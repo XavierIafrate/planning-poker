@@ -13,7 +13,8 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/firebase/client'
 import { generateRoomCode } from '@/utils/roomCode'
-import type { Room } from '@/types/room'
+import { DEFAULT_ACCENT_COLOR } from '@/constants/theme'
+import type { AccentColorId, Room } from '@/types/room'
 import { useAuth } from './useAuth'
 
 const ROOM_TTL_DAYS = 7
@@ -41,6 +42,7 @@ export async function createRoom(): Promise<string> {
       round: 1,
       tickets: [],
       currentTicket: null,
+      accentColor: DEFAULT_ACCENT_COLOR,
       lastActivityAt: serverTimestamp(),
       expiresAt: expiryTimestamp(ROOM_TTL_DAYS),
     })
@@ -107,6 +109,18 @@ export function useRoom(roomCode: Ref<string>) {
     })
   }
 
+  async function moveTicket(index: number, direction: 'up' | 'down') {
+    const tickets = room.value?.tickets ?? []
+    const swapWith = direction === 'up' ? index - 1 : index + 1
+    if (swapWith < 0 || swapWith >= tickets.length) return
+    const reordered = [...tickets]
+    ;[reordered[index], reordered[swapWith]] = [reordered[swapWith]!, reordered[index]!]
+    await updateDoc(doc(db, 'rooms', roomCode.value), {
+      tickets: reordered,
+      lastActivityAt: serverTimestamp(),
+    })
+  }
+
   async function nextTicket() {
     const tickets = room.value?.tickets ?? []
     if (tickets.length === 0) return
@@ -120,5 +134,22 @@ export function useRoom(roomCode: Ref<string>) {
     })
   }
 
-  return { room, loading, revealVotes, resetRound, addTickets, removeTicket, nextTicket }
+  async function setAccentColor(color: AccentColorId) {
+    await updateDoc(doc(db, 'rooms', roomCode.value), {
+      accentColor: color,
+      lastActivityAt: serverTimestamp(),
+    })
+  }
+
+  return {
+    room,
+    loading,
+    revealVotes,
+    resetRound,
+    addTickets,
+    removeTicket,
+    moveTicket,
+    nextTicket,
+    setAccentColor,
+  }
 }

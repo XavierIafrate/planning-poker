@@ -10,7 +10,7 @@ import {
   updateDoc,
 } from 'firebase/firestore'
 import { db } from '@/firebase/client'
-import type { Participant } from '@/types/room'
+import type { Participant, ParticipantRole } from '@/types/room'
 import { useAuth } from './useAuth'
 
 const PARTICIPANT_TTL_DAYS = 7
@@ -72,10 +72,11 @@ export function useParticipants(roomCode: Ref<string>, round: Ref<number | undef
     }
   })
 
-  async function joinRoom(name: string) {
+  async function joinRoom(name: string, role: ParticipantRole = 'voter') {
     const currentUser = await waitForUser()
     await setDoc(doc(db, 'rooms', roomCode.value, 'participants', currentUser.uid), {
       name,
+      role,
       vote: null,
       joinedAt: serverTimestamp(),
       lastSeenAt: serverTimestamp(),
@@ -91,10 +92,19 @@ export function useParticipants(roomCode: Ref<string>, round: Ref<number | undef
     })
   }
 
+  async function setRole(role: ParticipantRole) {
+    if (!user.value) return
+    await updateDoc(doc(db, 'rooms', roomCode.value, 'participants', user.value.uid), {
+      role,
+      ...(role === 'observer' ? { vote: null } : {}),
+      lastSeenAt: serverTimestamp(),
+    })
+  }
+
   async function leaveRoom() {
     if (!user.value) return
     await deleteDoc(doc(db, 'rooms', roomCode.value, 'participants', user.value.uid))
   }
 
-  return { participants, loading, self, joinRoom, castVote, leaveRoom }
+  return { participants, loading, self, joinRoom, castVote, setRole, leaveRoom }
 }

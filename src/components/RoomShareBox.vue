@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 
 const props = defineProps<{
   code: string
@@ -18,12 +19,12 @@ async function copyLink() {
 <template>
   <div class="share">
     <span class="code">{{ code }}</span>
-    <button
+    <BaseButton
       type="button"
       @click="copyLink"
     >
       {{ copied ? 'Copied!' : 'Copy link' }}
-    </button>
+    </BaseButton>
   </div>
 </template>
 
@@ -39,10 +40,6 @@ async function copyLink() {
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: 0.1em;
-}
-
-button {
-  padding: 0.375rem 0.75rem;
-  cursor: pointer;
+  color: var(--color-accent, var(--color-heading));
 }
 </style>

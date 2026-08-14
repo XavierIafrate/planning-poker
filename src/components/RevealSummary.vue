@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { NUMERIC_VALUES } from '@/constants/decks'
 import type { ParticipantWithId } from '@/composables/useParticipants'
+import CardFace from '@/components/CardFace.vue'
 
 const props = defineProps<{
   participants: ParticipantWithId[]
@@ -28,7 +29,7 @@ const consensus = computed(() => votes.value.length > 0 && new Set(votes.value).
       v-if="consensus"
       class="consensus"
     >
-      🎉 Consensus — everyone picked {{ votes[0] }}
+      🎉 Consensus — everyone picked <CardFace :value="votes[0]!" />
     </p>
     <p v-else-if="average !== null">
       Average (numeric votes): <strong>{{ average }}</strong>

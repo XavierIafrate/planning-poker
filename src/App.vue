@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import ThemeToggle from '@/components/ThemeToggle.vue'
+import ColorblindToggle from '@/components/ColorblindToggle.vue'
 </script>
 
 <template>
@@ -11,6 +13,10 @@ import { RouterLink, RouterView } from 'vue-router'
       >
         Planning Poker
       </RouterLink>
+      <div class="header-controls">
+        <ColorblindToggle />
+        <ThemeToggle />
+      </div>
     </header>
     <RouterView />
   </div>
@@ -26,12 +32,23 @@ import { RouterLink, RouterView } from 'vue-router'
 .app-header {
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .brand {
-  font-weight: 600;
-  font-size: 1.1rem;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  letter-spacing: 0.02em;
   color: var(--color-heading);
   text-decoration: none;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 </style>

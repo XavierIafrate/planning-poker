@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { createRoom } from '@/composables/useRoom'
 import { isValidRoomCode, normalizeRoomCode } from '@/utils/roomCode'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
 
 const router = useRouter()
 
@@ -44,13 +46,14 @@ function handleJoin() {
 
     <section class="panel">
       <h2>Start a new session</h2>
-      <button
+      <BaseButton
+        variant="primary"
         type="button"
         :disabled="creating"
         @click="handleCreate"
       >
         {{ creating ? 'Creating…' : 'Create room' }}
-      </button>
+      </BaseButton>
       <p
         v-if="createError"
         class="error"
@@ -62,16 +65,20 @@ function handleJoin() {
     <section class="panel">
       <h2>Join a session</h2>
       <form @submit.prevent="handleJoin">
-        <input
+        <BaseInput
           v-model="joinCode"
+          class="join-input"
           type="text"
           placeholder="Room code, e.g. AB3XQ9"
           maxlength="6"
           autocapitalize="characters"
+        />
+        <BaseButton
+          variant="primary"
+          type="submit"
         >
-        <button type="submit">
           Join
-        </button>
+        </BaseButton>
       </form>
       <p
         v-if="joinError"
@@ -85,9 +92,17 @@ function handleJoin() {
 
 <style scoped>
 .home {
-  max-width: 32rem;
+  max-width: 38rem;
   margin: 0 auto;
   padding: 3rem 1.5rem;
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  letter-spacing: 0.02em;
+  color: var(--color-heading);
+  margin-bottom: 0.5rem;
 }
 
 .tagline {
@@ -113,15 +128,9 @@ form {
   gap: 0.5rem;
 }
 
-input {
+.join-input {
   flex: 1;
-  padding: 0.5rem 0.75rem;
   text-transform: uppercase;
-}
-
-button {
-  padding: 0.5rem 1rem;
-  cursor: pointer;
 }
 
 .error {

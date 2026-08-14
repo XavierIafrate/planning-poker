@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ParticipantWithId } from '@/composables/useParticipants'
+import CardFace from '@/components/CardFace.vue'
 
 defineProps<{
   participants: ParticipantWithId[]
@@ -16,10 +17,23 @@ defineProps<{
     >
       <span class="name">{{ participant.name }}</span>
       <span
+        v-if="participant.role === 'observer'"
+        class="observing"
+      >
+        Observing
+      </span>
+      <span
+        v-else
         class="vote"
         :class="{ pending: !participant.vote }"
       >
-        <template v-if="revealed">{{ participant.vote ?? '—' }}</template>
+        <template v-if="revealed">
+          <CardFace
+            v-if="participant.vote"
+            :value="participant.vote"
+          />
+          <template v-else>—</template>
+        </template>
         <template v-else>{{ participant.vote ? '✓' : '…' }}</template>
       </span>
     </li>
@@ -53,5 +67,11 @@ defineProps<{
 
 .vote.pending {
   opacity: 0.4;
+}
+
+.observing {
+  font-size: 0.8125rem;
+  font-style: italic;
+  opacity: 0.6;
 }
 </style>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import BaseButton from '@/components/base/BaseButton.vue'
+
 defineProps<{
   revealed: boolean
 }>()
@@ -8,20 +10,22 @@ const emit = defineEmits<{ reveal: []; reset: [] }>()
 
 <template>
   <div class="controls">
-    <button
+    <BaseButton
       v-if="!revealed"
+      variant="primary"
       type="button"
       @click="emit('reveal')"
     >
       Reveal votes
-    </button>
-    <button
+    </BaseButton>
+    <BaseButton
       v-else
+      variant="primary"
       type="button"
       @click="emit('reset')"
     >
       New round
-    </button>
+    </BaseButton>
   </div>
 </template>
 
@@ -29,11 +33,5 @@ const emit = defineEmits<{ reveal: []; reset: [] }>()
 .controls {
   display: flex;
   gap: 0.5rem;
-}
-
-button {
-  padding: 0.5rem 1.25rem;
-  cursor: pointer;
-  font-weight: 600;
 }
 </style>

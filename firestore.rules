@@ -6,6 +6,14 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isAccentColor(value) {
+      return value in ['green', 'blue', 'purple', 'pink', 'orange', 'teal'];
+    }
+
+    function isParticipantRole(value) {
+      return value in ['voter', 'observer'];
+    }
+
     match /rooms/{roomCode} {
       allow get: if isSignedIn();
       allow list: if false;
@@ -16,16 +24,18 @@ service cloud.firestore {
         && request.resource.data.round == 1
         && request.resource.data.tickets == []
         && request.resource.data.currentTicket == null
+        && isAccentColor(request.resource.data.accentColor)
         && request.resource.data.keys().hasOnly(
-             ['createdAt', 'hostUid', 'deck', 'revealed', 'round', 'tickets', 'currentTicket', 'lastActivityAt', 'expiresAt']);
+             ['createdAt', 'hostUid', 'deck', 'revealed', 'round', 'tickets', 'currentTicket', 'accentColor', 'lastActivityAt', 'expiresAt']);
 
       allow update: if isSignedIn()
         && resource.data.hostUid == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['revealed', 'round', 'tickets', 'currentTicket', 'lastActivityAt', 'expiresAt'])
+             .hasOnly(['revealed', 'round', 'tickets', 'currentTicket', 'accentColor', 'lastActivityAt', 'expiresAt'])
         && request.resource.data.tickets is list
         && request.resource.data.tickets.size() <= 200
-        && (request.resource.data.currentTicket == null || request.resource.data.currentTicket is string);
+        && (request.resource.data.currentTicket == null || request.resource.data.currentTicket is string)
+        && isAccentColor(request.resource.data.accentColor);
 
       allow delete: if false;
 
@@ -35,14 +45,17 @@ service cloud.firestore {
         allow create: if isSignedIn() && uid == request.auth.uid
           && request.resource.data.name is string
           && request.resource.data.name.size() <= 40
+          && isParticipantRole(request.resource.data.role)
           && request.resource.data.vote == null
           && request.resource.data.keys().hasOnly(
-               ['name', 'vote', 'joinedAt', 'lastSeenAt', 'expiresAt']);
+               ['name', 'role', 'vote', 'joinedAt', 'lastSeenAt', 'expiresAt']);
 
         allow update: if isSignedIn() && uid == request.auth.uid
           && request.resource.data.name == resource.data.name
           && request.resource.data.diff(resource.data).affectedKeys()
-               .hasOnly(['vote', 'lastSeenAt', 'expiresAt']);
+               .hasOnly(['vote', 'role', 'lastSeenAt', 'expiresAt'])
+          && isParticipantRole(request.resource.data.role)
+          && (request.resource.data.vote == null || request.resource.data.role == 'voter');
 
         allow delete: if isSignedIn() && uid == request.auth.uid;
       }

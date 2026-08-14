@@ -3,7 +3,9 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRoom } from '@/composables/useRoom'
 import { useParticipants } from '@/composables/useParticipants'
+import { useTheme } from '@/composables/useTheme'
 import { DECKS } from '@/constants/decks'
+import { ACCENT_COLORS } from '@/constants/theme'
 import NameEntryModal from '@/components/NameEntryModal.vue'
 import CardDeck from '@/components/CardDeck.vue'
 import ParticipantList from '@/components/ParticipantList.vue'
@@ -11,6 +13,8 @@ import HostControls from '@/components/HostControls.vue'
 import RevealSummary from '@/components/RevealSummary.vue'
 import RoomShareBox from '@/components/RoomShareBox.vue'
 import TicketQueue from '@/components/TicketQueue.vue'
+import AccentPicker from '@/components/AccentPicker.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 
 const route = useRoute()
 const code = computed(() => String(route.params.code))
@@ -22,7 +26,9 @@ const {
   resetRound,
   addTickets,
   removeTicket,
+  moveTicket,
   nextTicket,
+  setAccentColor,
 } = useRoom(code)
 const round = computed(() => room.value?.round)
 const {
@@ -31,14 +37,25 @@ const {
   self,
   joinRoom,
   castVote,
+  setRole,
 } = useParticipants(code, round)
 
 const deck = computed(() => (room.value ? DECKS[room.value.deck] : []))
 const isHost = computed(() => !!room.value && !!self.value && room.value.hostUid === self.value.uid)
+
+const { isDark } = useTheme()
+const accentHex = computed(() => {
+  if (!room.value) return null
+  const definition = ACCENT_COLORS[room.value.accentColor]
+  return isDark.value ? definition.dark : definition.light
+})
 </script>
 
 <template>
-  <main class="room">
+  <main
+    class="room"
+    :style="accentHex ? { '--color-accent': accentHex } : {}"
+  >
     <template v-if="roomLoading || participantsLoading">
       <p>Loading…</p>
     </template>
@@ -54,6 +71,11 @@ const isHost = computed(() => !!room.value && !!self.value && room.value.hostUid
       <template v-else>
         <div class="room-header">
           <RoomShareBox :code="code" />
+          <AccentPicker
+            v-if="isHost"
+            :model-value="room.accentColor"
+            @update:model-value="setAccentColor"
+          />
           <HostControls
             v-if="isHost"
             :revealed="room.revealed"
@@ -68,6 +90,7 @@ const isHost = computed(() => !!room.value && !!self.value && room.value.hostUid
           :current-ticket="room.currentTicket"
           @add="addTickets"
           @remove="removeTicket"
+          @move="moveTicket"
           @next="nextTicket"
         />
 
@@ -92,8 +115,25 @@ const isHost = computed(() => !!room.value && !!self.value && room.value.hostUid
         </section>
 
         <section>
-          <h2>Your vote</h2>
+          <div class="section-header">
+            <h2>Your vote</h2>
+            <BaseButton
+              variant="ghost"
+              type="button"
+              class="role-toggle"
+              @click="setRole(self.role === 'observer' ? 'voter' : 'observer')"
+            >
+              {{ self.role === 'observer' ? 'Switch to voting' : 'Switch to observing' }}
+            </BaseButton>
+          </div>
+          <p
+            v-if="self.role === 'observer'"
+            class="observing-note"
+          >
+            You're observing this round — your vote won't be counted.
+          </p>
           <CardDeck
+            v-else
             :cards="deck"
             :selected="self.vote"
             :disabled="room.revealed"
@@ -107,7 +147,7 @@ const isHost = computed(() => !!room.value && !!self.value && room.value.hostUid
 
 <style scoped>
 .room {
-  max-width: 40rem;
+  max-width: 56rem;
   margin: 0 auto;
   padding: 2rem 1.5rem;
   display: flex;
@@ -131,7 +171,29 @@ h2 {
   margin-bottom: 0.75rem;
 }
 
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-header h2 {
+  margin-bottom: 0;
+}
+
+.observing-note {
+  opacity: 0.7;
+  font-size: 0.875rem;
+}
+
 .current-ticket {
   margin: 0;
+}
+
+.current-ticket strong {
+  color: var(--color-accent);
 }
 </style>
