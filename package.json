@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:full": "run-p emulators dev",
+    "emulators": "PATH=\"/opt/homebrew/opt/openjdk@21/bin:$PATH\" firebase emulators:start --only auth,firestore",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
