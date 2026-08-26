@@ -1,17 +1,26 @@
 <script setup lang="ts">
 import BaseButton from '@/components/base/BaseButton.vue'
+import type { RoomPhase } from '@/types/room'
 
 defineProps<{
-  revealed: boolean
+  phase: RoomPhase
 }>()
 
-const emit = defineEmits<{ reveal: []; reset: [] }>()
+const emit = defineEmits<{ 'start-voting': []; reveal: []; reset: [] }>()
 </script>
 
 <template>
   <div class="controls">
     <BaseButton
-      v-if="!revealed"
+      v-if="phase === 'discussion'"
+      variant="primary"
+      type="button"
+      @click="emit('start-voting')"
+    >
+      Start voting
+    </BaseButton>
+    <BaseButton
+      v-else-if="phase === 'voting'"
       variant="primary"
       type="button"
       @click="emit('reveal')"
@@ -19,7 +28,7 @@ const emit = defineEmits<{ reveal: []; reset: [] }>()
       Reveal votes
     </BaseButton>
     <BaseButton
-      v-else
+      v-else-if="phase === 'revealed'"
       variant="primary"
       type="button"
       @click="emit('reset')"

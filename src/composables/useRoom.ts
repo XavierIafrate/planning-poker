@@ -15,7 +15,7 @@ import { db } from '@/firebase/client'
 import { generateRoomCode } from '@/utils/roomCode'
 import { DEFAULT_ACCENT_COLOR } from '@/constants/theme'
 import { computeAverage, hasConsensus } from '@/utils/roundStats'
-import type { AccentColorId, DeckId, Room, RoundHistoryEntry } from '@/types/room'
+import type { AccentColorId, DeckId, Room, RoomPhase, RoundHistoryEntry } from '@/types/room'
 import type { ParticipantWithId } from './useParticipants'
 import { useAuth } from './useAuth'
 
@@ -52,7 +52,7 @@ export async function createRoom(deck: DeckId = 'fibonacci'): Promise<string> {
       createdAt: serverTimestamp(),
       hostUid: user.uid,
       deck,
-      revealed: false,
+      phase: 'lobby' satisfies RoomPhase,
       round: 1,
       tickets: [],
       currentTicket: null,
@@ -94,20 +94,27 @@ export function useRoom(roomCode: Ref<string>) {
 
   onUnmounted(() => unsubscribe?.())
 
+  async function startVoting() {
+    await updateDoc(doc(db, 'rooms', roomCode.value), {
+      phase: 'voting' satisfies RoomPhase,
+      lastActivityAt: serverTimestamp(),
+    })
+  }
+
   async function revealVotes() {
     await updateDoc(doc(db, 'rooms', roomCode.value), {
-      revealed: true,
+      phase: 'revealed' satisfies RoomPhase,
       lastActivityAt: serverTimestamp(),
     })
   }
 
   async function resetRound(participants: ParticipantWithId[]) {
     await updateDoc(doc(db, 'rooms', roomCode.value), {
-      revealed: false,
+      phase: 'discussion' satisfies RoomPhase,
       round: increment(1),
       lastActivityAt: serverTimestamp(),
       roundStartedAt: serverTimestamp(),
-      ...(room.value?.revealed
+      ...(room.value?.phase === 'revealed'
         ? { history: arrayUnion(buildHistoryEntry(room.value, participants)) }
         : {}),
     })
@@ -148,11 +155,11 @@ export function useRoom(roomCode: Ref<string>) {
     await updateDoc(doc(db, 'rooms', roomCode.value), {
       currentTicket: next,
       tickets: rest,
-      revealed: false,
+      phase: 'discussion' satisfies RoomPhase,
       round: increment(1),
       lastActivityAt: serverTimestamp(),
       roundStartedAt: serverTimestamp(),
-      ...(room.value?.revealed
+      ...(room.value?.phase === 'revealed'
         ? { history: arrayUnion(buildHistoryEntry(room.value, participants)) }
         : {}),
     })
@@ -168,6 +175,7 @@ export function useRoom(roomCode: Ref<string>) {
   return {
     room,
     loading,
+    startVoting,
     revealVotes,
     resetRound,
     addTickets,

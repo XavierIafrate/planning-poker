@@ -4,6 +4,14 @@ export type DeckId = 'fibonacci' | 'fibonacciModified'
 
 export type AccentColorId = 'green' | 'blue' | 'purple' | 'pink' | 'orange' | 'teal'
 
+/**
+ * lobby: no ticket picked yet — the room's just-started state.
+ * discussion: a ticket is up but voting hasn't opened.
+ * voting: cards are live.
+ * revealed: votes are shown for the current ticket/round.
+ */
+export type RoomPhase = 'lobby' | 'discussion' | 'voting' | 'revealed'
+
 export interface RoundHistoryEntry {
   ticket: string | null
   round: number
@@ -17,7 +25,7 @@ export interface Room {
   createdAt: Timestamp
   hostUid: string
   deck: DeckId
-  revealed: boolean
+  phase: RoomPhase
   round: number
   tickets: string[]
   currentTicket: string | null

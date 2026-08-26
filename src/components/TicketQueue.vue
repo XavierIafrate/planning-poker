@@ -96,7 +96,7 @@ function handleAdd() {
       :disabled="tickets.length === 0"
       @click="emit('next')"
     >
-      {{ currentTicket ? 'Next ticket' : 'Start voting' }}
+      {{ currentTicket ? 'Next ticket' : 'Pick first ticket' }}
     </BaseButton>
   </div>
 </template>

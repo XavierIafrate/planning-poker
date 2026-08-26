@@ -5,7 +5,6 @@ import { useRoom } from '@/composables/useRoom'
 import { useParticipants } from '@/composables/useParticipants'
 import { useTheme } from '@/composables/useTheme'
 import { useRoundTimer } from '@/composables/useRoundTimer'
-import { playSadTrombone } from '@/composables/useRevealSound'
 import { DECKS } from '@/constants/decks'
 import { ACCENT_COLORS } from '@/constants/theme'
 import { hasConsensus } from '@/utils/roundStats'
@@ -29,6 +28,7 @@ const code = computed(() => String(route.params.code))
 const {
   room,
   loading: roomLoading,
+  startVoting,
   revealVotes,
   resetRound,
   addTickets,
@@ -59,7 +59,7 @@ const accentHex = computed(() => {
 })
 
 const roundStartedAt = computed(() => room.value?.roundStartedAt)
-const revealed = computed(() => room.value?.revealed)
+const revealed = computed(() => room.value?.phase === 'revealed')
 const { elapsedSeconds } = useRoundTimer(roundStartedAt, revealed)
 
 // Auto-reveal once every voter (observers excluded) has locked in a vote.
@@ -78,7 +78,7 @@ watch(voters, () => {
   if (!allVotersReady.value) return
   autoRevealTimeoutId = setTimeout(() => {
     autoRevealTimeoutId = null
-    if (isHost.value && room.value && !room.value.revealed && allVotersReady.value) {
+    if (isHost.value && room.value?.phase === 'voting' && allVotersReady.value) {
       revealVotes()
     }
   }, AUTO_REVEAL_DEBOUNCE_MS)
@@ -120,7 +120,7 @@ watch(revealed, (isRevealed, wasRevealed) => {
 })
 onUnmounted(clearCountdown)
 
-// Consensus gets confetti; a split decision gets a sad trombone.
+// Consensus gets confetti.
 const votes = computed(() => participants.value.filter((p) => p.role === 'voter').map((p) => p.vote))
 const isConsensus = computed(() => hasConsensus(votes.value))
 const showConfetti = ref(false)
@@ -130,8 +130,6 @@ watch(revealReady, (ready) => {
   if (isConsensus.value) {
     confettiKey.value++
     showConfetti.value = true
-  } else {
-    playSadTrombone()
   }
 })
 </script>
@@ -164,7 +162,7 @@ watch(revealReady, (ready) => {
           <RoomShareBox :code="code" />
           <RoundTimer
             :seconds="elapsedSeconds"
-            :running="!room.revealed"
+            :running="room.phase === 'discussion' || room.phase === 'voting'"
           />
           <AccentPicker
             v-if="isHost"
@@ -173,7 +171,8 @@ watch(revealReady, (ready) => {
           />
           <HostControls
             v-if="isHost"
-            :revealed="room.revealed"
+            :phase="room.phase"
+            @start-voting="startVoting"
             @reveal="revealVotes"
             @reset="resetRound(participants)"
           />
@@ -193,7 +192,14 @@ watch(revealReady, (ready) => {
           v-if="room.currentTicket"
           class="current-ticket"
         >
-          Now estimating: <strong>{{ room.currentTicket }}</strong>
+          {{ room.phase === 'discussion' ? 'Now discussing' : 'Now estimating' }}:
+          <strong>{{ room.currentTicket }}</strong>
+        </p>
+        <p
+          v-else
+          class="phase-note"
+        >
+          Waiting for {{ isHost ? 'you to add and pick' : 'the host to pick' }} a ticket to get started.
         </p>
 
         <p
@@ -206,7 +212,7 @@ watch(revealReady, (ready) => {
         </p>
 
         <RevealSummary
-          v-if="room.revealed && revealReady"
+          v-if="revealed && revealReady"
           :participants="participants"
         />
 
@@ -214,7 +220,7 @@ watch(revealReady, (ready) => {
           <h2>Participants</h2>
           <ParticipantList
             :participants="participants"
-            :revealed="room.revealed && revealReady"
+            :revealed="revealed && revealReady"
             :self-uid="self.uid"
           />
         </section>
@@ -243,11 +249,24 @@ watch(revealReady, (ready) => {
           >
             You're observing this round — your vote won't be counted.
           </p>
+          <p
+            v-else-if="room.phase === 'lobby'"
+            class="phase-note"
+          >
+            Voting opens once a ticket is up for discussion.
+          </p>
+          <p
+            v-else-if="room.phase === 'discussion'"
+            class="phase-note"
+          >
+            Discuss the ticket —
+            {{ isHost ? 'click "Start voting" when you\'re ready.' : 'the host will open voting shortly.' }}
+          </p>
           <CardDeck
             v-else
             :cards="deck"
             :selected="self.vote"
-            :disabled="room.revealed"
+            :disabled="room.phase === 'revealed'"
             @select="castVote"
           />
         </section>
@@ -307,7 +326,8 @@ h2 {
   gap: 0.5rem;
 }
 
-.observing-note {
+.observing-note,
+.phase-note {
   opacity: 0.7;
   font-size: 0.875rem;
 }

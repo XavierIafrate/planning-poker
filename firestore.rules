@@ -22,13 +22,17 @@ service cloud.firestore {
       return value in ['fibonacci', 'fibonacciModified'];
     }
 
+    function isRoomPhase(value) {
+      return value in ['lobby', 'discussion', 'voting', 'revealed'];
+    }
+
     match /rooms/{roomCode} {
       allow get: if isSignedIn();
       allow list: if false;
 
       allow create: if isSignedIn()
         && request.resource.data.hostUid == request.auth.uid
-        && request.resource.data.revealed == false
+        && request.resource.data.phase == 'lobby'
         && request.resource.data.round == 1
         && request.resource.data.tickets == []
         && request.resource.data.currentTicket == null
@@ -36,12 +40,13 @@ service cloud.firestore {
         && isAccentColor(request.resource.data.accentColor)
         && isDeckId(request.resource.data.deck)
         && request.resource.data.keys().hasOnly(
-             ['createdAt', 'hostUid', 'deck', 'revealed', 'round', 'tickets', 'currentTicket', 'accentColor', 'history', 'lastActivityAt', 'expiresAt', 'roundStartedAt']);
+             ['createdAt', 'hostUid', 'deck', 'phase', 'round', 'tickets', 'currentTicket', 'accentColor', 'history', 'lastActivityAt', 'expiresAt', 'roundStartedAt']);
 
       allow update: if isSignedIn()
         && resource.data.hostUid == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['revealed', 'round', 'tickets', 'currentTicket', 'accentColor', 'history', 'lastActivityAt', 'expiresAt', 'roundStartedAt'])
+             .hasOnly(['phase', 'round', 'tickets', 'currentTicket', 'accentColor', 'history', 'lastActivityAt', 'expiresAt', 'roundStartedAt'])
+        && isRoomPhase(request.resource.data.phase)
         && request.resource.data.tickets is list
         && request.resource.data.tickets.size() <= 200
         && (request.resource.data.currentTicket == null || request.resource.data.currentTicket is string)
@@ -69,7 +74,9 @@ service cloud.firestore {
                .hasOnly(['vote', 'role', 'jobRole', 'lastSeenAt', 'expiresAt'])
           && isParticipantRole(request.resource.data.role)
           && isJobRole(request.resource.data.jobRole)
-          && (request.resource.data.vote == null || request.resource.data.role == 'voter');
+          && (request.resource.data.vote == null
+              || (request.resource.data.role == 'voter'
+                  && get(/databases/$(database)/documents/rooms/$(roomCode)).data.phase == 'voting'));
 
         allow delete: if isSignedIn() && uid == request.auth.uid;
       }
