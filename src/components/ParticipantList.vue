@@ -2,12 +2,16 @@
 import type { ParticipantWithId } from '@/composables/useParticipants'
 import { JOB_ROLE_LABELS } from '@/constants/jobRoles'
 import CardFace from '@/components/CardFace.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 
 defineProps<{
   participants: ParticipantWithId[]
   revealed: boolean
   selfUid: string
+  canRemove: boolean
 }>()
+
+const emit = defineEmits<{ remove: [uid: string] }>()
 </script>
 
 <template>
@@ -16,7 +20,7 @@ defineProps<{
       v-for="participant in participants"
       :key="participant.uid"
       class="participant"
-      :class="{ self: participant.uid === selfUid }"
+      :class="{ self: participant.uid === selfUid, away: participant.away }"
     >
       <span class="identity">
         <span class="name-wrap">
@@ -27,26 +31,42 @@ defineProps<{
           >You</span>
         </span>
         <span class="job-role-badge">{{ JOB_ROLE_LABELS[participant.jobRole] }}</span>
+        <span
+          v-if="participant.away"
+          class="away-badge"
+        >Away</span>
       </span>
-      <span
-        v-if="participant.role === 'observer'"
-        class="observing"
-      >
-        Observing
-      </span>
-      <span
-        v-else
-        class="vote"
-        :class="{ pending: !participant.vote }"
-      >
-        <template v-if="revealed">
-          <CardFace
-            v-if="participant.vote"
-            :value="participant.vote"
-          />
-          <template v-else>—</template>
-        </template>
-        <template v-else>{{ participant.vote ? '✓' : '…' }}</template>
+      <span class="status">
+        <span
+          v-if="participant.role === 'observer'"
+          class="observing"
+        >
+          Observing
+        </span>
+        <span
+          v-else
+          class="vote"
+          :class="{ pending: !participant.vote }"
+        >
+          <template v-if="revealed">
+            <CardFace
+              v-if="participant.vote"
+              :value="participant.vote"
+            />
+            <template v-else>—</template>
+          </template>
+          <template v-else>{{ participant.vote ? '✓' : '…' }}</template>
+        </span>
+        <BaseButton
+          v-if="canRemove && participant.uid !== selfUid"
+          variant="ghost"
+          type="button"
+          class="remove"
+          :aria-label="`Remove ${participant.name}`"
+          @click="emit('remove', participant.uid)"
+        >
+          ✕
+        </BaseButton>
       </span>
     </li>
   </ul>
@@ -89,8 +109,13 @@ defineProps<{
   min-width: 8rem;
 }
 
+.participant.away .name-wrap {
+  opacity: 0.5;
+}
+
 .you-badge,
-.job-role-badge {
+.job-role-badge,
+.away-badge {
   display: inline-flex;
   align-items: center;
   height: 1.125rem;
@@ -115,6 +140,27 @@ defineProps<{
   opacity: 0.7;
 }
 
+.away-badge {
+  border-color: var(--color-border);
+  border-style: dashed;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.remove {
+  opacity: 0.8;
+}
+
+.remove:hover {
+  opacity: 1;
+}
+
 .vote {
   font-weight: 600;
   min-width: 1.5rem;
@@ -122,7 +168,7 @@ defineProps<{
 }
 
 .vote.pending {
-  opacity: 0.4;
+  opacity: 0.7;
 }
 
 .observing {

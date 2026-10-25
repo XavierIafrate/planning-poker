@@ -133,6 +133,10 @@ const SUITS = ['♠', '♥', '♦', '♣']
 
 .card:disabled {
   cursor: not-allowed;
+}
+
+/* Keep the chosen card at full strength once voting locks — it's the one to find */
+.card:disabled:not(.active) {
   opacity: 0.5;
 }
 

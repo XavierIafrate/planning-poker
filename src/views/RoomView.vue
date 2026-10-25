@@ -46,6 +46,7 @@ const {
   castVote,
   setRole,
   setJobRole,
+  removeParticipant,
 } = useParticipants(code, round)
 
 const deck = computed(() => (room.value ? DECKS[room.value.deck] : []))
@@ -62,15 +63,20 @@ const roundStartedAt = computed(() => room.value?.roundStartedAt)
 const revealed = computed(() => room.value?.phase === 'revealed')
 const { elapsedSeconds } = useRoundTimer(roundStartedAt, revealed)
 
-// Auto-reveal once every voter (observers excluded) has locked in a vote.
+// Auto-reveal once every voter (observers and away participants excluded)
+// has locked in a vote.
 // Debounced: a participant who just joined may not have reached every
 // client's Firestore listener yet, so we let the roster settle briefly
 // before committing — any roster or vote change resets the wait.
 const AUTO_REVEAL_DEBOUNCE_MS = 600
-const voters = computed(() => participants.value.filter((p) => p.role === 'voter'))
+const voters = computed(() => participants.value.filter((p) => p.role === 'voter' && !p.away))
 const allVotersReady = computed(() => voters.value.length > 0 && voters.value.every((p) => p.vote !== null))
+// Only who's voting and whether they've voted — not the whole participant
+// objects, whose heartbeat timestamps change constantly and would keep
+// resetting the debounce so it never fires.
+const voterReadiness = computed(() => voters.value.map((p) => `${p.uid}:${p.vote !== null}`).join(','))
 let autoRevealTimeoutId: ReturnType<typeof setTimeout> | null = null
-watch(voters, () => {
+watch(voterReadiness, () => {
   if (autoRevealTimeoutId !== null) {
     clearTimeout(autoRevealTimeoutId)
     autoRevealTimeoutId = null
@@ -222,6 +228,8 @@ watch(revealReady, (ready) => {
             :participants="participants"
             :revealed="revealed && revealReady"
             :self-uid="self.uid"
+            :can-remove="isHost"
+            @remove="removeParticipant"
           />
         </section>
 
@@ -340,8 +348,15 @@ h2 {
   color: var(--color-accent);
 }
 
+/* Without this, sections grow to fit wide content (e.g. history table) instead of scrolling */
+.room > section {
+  min-width: 0;
+}
+
 .countdown {
   margin: 0;
+  /* Shrink to the digit so the scale-in animation doesn't overflow the page */
+  align-self: center;
   text-align: center;
   font-family: var(--font-display);
   font-size: 4rem;

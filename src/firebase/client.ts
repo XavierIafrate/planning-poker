@@ -24,6 +24,10 @@ export const auth = getAuth(app)
 export const db = getFirestore(app)
 
 if (useEmulators) {
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
-  connectFirestoreEmulator(db, '127.0.0.1', 8080)
+  // e2e tests use their own ports (firebase.e2e.json) so they can run
+  // alongside the dev emulators.
+  const authPort = import.meta.env.VITE_AUTH_EMULATOR_PORT ?? '9099'
+  const firestorePort = Number(import.meta.env.VITE_FIRESTORE_EMULATOR_PORT ?? '8080')
+  connectAuthEmulator(auth, `http://127.0.0.1:${authPort}`, { disableWarnings: true })
+  connectFirestoreEmulator(db, '127.0.0.1', firestorePort)
 }

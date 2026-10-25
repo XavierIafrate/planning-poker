@@ -36,6 +36,7 @@ function handleAdd() {
       <BaseTextarea
         v-model="input"
         placeholder="Paste ticket titles, one per line"
+        aria-label="Ticket titles"
         rows="3"
       />
       <BaseButton
@@ -158,7 +159,7 @@ function handleAdd() {
 
 .reorder,
 .remove {
-  opacity: 0.6;
+  opacity: 0.8;
 }
 
 .reorder:hover:not(:disabled),

@@ -65,30 +65,48 @@ service cloud.firestore {
       allow delete: if false;
 
       match /participants/{uid} {
+        function room() {
+          return get(/databases/$(database)/documents/rooms/$(roomCode)).data;
+        }
+
+        // A vote must be a card from the room's deck, cast while voting is
+        // open, and tagged with the current round so it goes stale on reset.
+        function isValidVote(data) {
+          let current = room();
+          return data.role == 'voter'
+            && current.phase == 'voting'
+            && data.votedRound == current.round
+            && isCardInDeck(data.vote, current.deck);
+        }
+
         allow read: if isSignedIn();
 
         allow create: if isSignedIn() && uid == request.auth.uid
           && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
           && request.resource.data.name.size() <= 40
           && isParticipantRole(request.resource.data.role)
           && isJobRole(request.resource.data.jobRole)
           && request.resource.data.vote == null
+          && request.resource.data.get('votedRound', null) == null
           && request.resource.data.keys().hasOnly(
-               ['name', 'role', 'jobRole', 'vote', 'joinedAt', 'lastSeenAt', 'expiresAt']);
+               ['name', 'role', 'jobRole', 'vote', 'votedRound', 'joinedAt', 'lastSeenAt', 'expiresAt']);
 
+        // The vote is only re-checked when it's being changed, so heartbeats
+        // and role changes still work while an old vote sits on the doc.
         allow update: if isSignedIn() && uid == request.auth.uid
           && request.resource.data.name == resource.data.name
           && request.resource.data.diff(resource.data).affectedKeys()
-               .hasOnly(['vote', 'role', 'jobRole', 'lastSeenAt', 'expiresAt'])
+               .hasOnly(['vote', 'votedRound', 'role', 'jobRole', 'lastSeenAt', 'expiresAt'])
           && isParticipantRole(request.resource.data.role)
           && isJobRole(request.resource.data.jobRole)
-          && (request.resource.data.vote == null
-              || (request.resource.data.role == 'voter'
-                  && get(/databases/$(database)/documents/rooms/$(roomCode)).data.phase == 'voting'
-                  && isCardInDeck(request.resource.data.vote,
-                       get(/databases/$(database)/documents/rooms/$(roomCode)).data.deck)));
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['vote', 'votedRound'])
+              || request.resource.data.vote == null
+              || isValidVote(request.resource.data));
 
-        allow delete: if isSignedIn() && uid == request.auth.uid;
+        // Participants can leave; the host can remove anyone (e.g. ghosts).
+        allow delete: if isSignedIn()
+          && (uid == request.auth.uid || room().hostUid == request.auth.uid);
       }
     }
   }

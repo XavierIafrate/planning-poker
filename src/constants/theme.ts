@@ -12,12 +12,12 @@ interface AccentColorDefinition {
 // in dark mode. Letting hosts pick an arbitrary hex here previously let a
 // pale color wash out button/card text entirely.
 export const ACCENT_COLORS: Record<AccentColorId, AccentColorDefinition> = {
-  green: { label: 'Green', light: '#16a34a', dark: '#4ade80' },
-  blue: { label: 'Blue', light: '#2563eb', dark: '#60a5fa' },
-  purple: { label: 'Purple', light: '#7c3aed', dark: '#a78bfa' },
-  pink: { label: 'Pink', light: '#db2777', dark: '#f472b6' },
-  orange: { label: 'Orange', light: '#ea580c', dark: '#fb923c' },
-  teal: { label: 'Teal', light: '#0d9488', dark: '#2dd4bf' },
+  green: { label: 'Green', light: '#15803d', dark: '#4ade80' },
+  blue: { label: 'Blue', light: '#1d4ed8', dark: '#60a5fa' },
+  purple: { label: 'Purple', light: '#6d28d9', dark: '#a78bfa' },
+  pink: { label: 'Pink', light: '#be185d', dark: '#f472b6' },
+  orange: { label: 'Orange', light: '#c2410c', dark: '#fb923c' },
+  teal: { label: 'Teal', light: '#0f766e', dark: '#2dd4bf' },
 }
 
 export const DEFAULT_ACCENT_COLOR: AccentColorId = 'green'

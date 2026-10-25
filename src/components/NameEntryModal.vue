@@ -47,7 +47,7 @@ function handleSubmit(role: ParticipantRole = 'voter') {
       >
         {{ error }}
       </p>
-      <label>Job role</label>
+      <span aria-hidden="true">Job role</span>
       <JobRolePicker v-model="jobRole" />
       <div class="actions">
         <BaseButton

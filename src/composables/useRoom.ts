@@ -27,11 +27,13 @@ function expiryTimestamp(days: number): Timestamp {
 }
 
 function buildHistoryEntry(room: Room, participants: ParticipantWithId[]): RoundHistoryEntry {
-  const votes = participants.filter((p) => p.role === 'voter').map((p) => p.vote)
+  // Away voters who never voted weren't really part of this round.
+  const voters = participants.filter((p) => p.role === 'voter' && !(p.away && p.vote === null))
+  const votes = voters.map((p) => p.vote)
   return {
     ticket: room.currentTicket,
     round: room.round,
-    votes: participants.filter((p) => p.role === 'voter').map((p) => ({ name: p.name, vote: p.vote })),
+    votes: voters.map((p) => ({ name: p.name, vote: p.vote })),
     average: computeAverage(votes),
     consensus: hasConsensus(votes),
     revealedAt: Timestamp.now(),

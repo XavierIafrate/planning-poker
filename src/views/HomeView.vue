@@ -98,6 +98,7 @@ function handleJoin() {
           class="join-input"
           type="text"
           placeholder="Room code, e.g. AB3XQ9"
+          aria-label="Room code"
           maxlength="6"
           autocapitalize="characters"
         />
@@ -200,6 +201,10 @@ form {
 .join-input {
   flex: 1;
   text-transform: uppercase;
+}
+
+.join-input::placeholder {
+  text-transform: none;
 }
 
 .error {

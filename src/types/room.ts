@@ -45,7 +45,10 @@ export interface Participant {
   role: ParticipantRole
   jobRole: JobRole
   vote: string | null
+  /** The room round `vote` was cast in — a vote from any other round is stale. */
+  votedRound: number | null
   joinedAt: Timestamp
-  lastSeenAt: Timestamp
+  /** Null in local snapshots while a serverTimestamp() write is still pending. */
+  lastSeenAt: Timestamp | null
   expiresAt: Timestamp
 }

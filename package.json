@@ -13,7 +13,9 @@
     "type-check": "vue-tsc --build",
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
-    "lint:eslint": "eslint . --fix --cache"
+    "lint:eslint": "eslint . --fix --cache",
+    "test:e2e": "PATH=\"/opt/homebrew/opt/openjdk@21/bin:$PATH\" firebase --config firebase.e2e.json emulators:exec --only auth,firestore --project demo-planning-poker \"playwright test\"",
+    "emulators:e2e": "PATH=\"/opt/homebrew/opt/openjdk@21/bin:$PATH\" firebase --config firebase.e2e.json emulators:start --only auth,firestore --project demo-planning-poker"
   },
   "dependencies": {
     "firebase": "^12.17.1",
@@ -21,6 +23,7 @@
     "vue-router": "^5.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.13.3",
     "@vitejs/plugin-vue": "^6.0.8",

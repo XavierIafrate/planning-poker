@@ -94,7 +94,11 @@ function consensusValue(entry: RoundHistoryEntry): string | null {
 }
 
 .vote-chip {
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+
+.history td:first-child {
+  min-width: 8rem;
 }
 
 .consensus {
