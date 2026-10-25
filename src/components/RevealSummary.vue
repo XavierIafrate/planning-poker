@@ -23,13 +23,13 @@ const consensusValue = computed(() => votes.value.find((v) => v !== null) ?? nul
       v-if="consensus"
       class="consensus"
     >
-      🎉 Consensus — everyone picked <CardFace :value="consensusValue!" />
+      🎉 Consensus — everyone picked <CardFace :value="consensusValue!" />. Remarkable.
     </p>
     <p v-else-if="average !== null">
       Average (numeric votes): <strong>{{ average }}</strong>
     </p>
     <p v-else>
-      No numeric votes to average.
+      No numeric votes to average. Everyone's hedging.
     </p>
   </div>
 </template>

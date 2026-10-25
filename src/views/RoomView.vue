@@ -149,7 +149,7 @@ watch(revealReady, (ready) => {
       <p>Loading…</p>
     </template>
     <template v-else-if="!room">
-      <p>Room not found. Double-check the link or code.</p>
+      <p>Room not found. Double-check the link or code, or assume everyone's gone to put the kettle on.</p>
     </template>
     <template v-else>
       <NameEntryModal
@@ -255,7 +255,7 @@ watch(revealReady, (ready) => {
             v-if="self.role === 'observer'"
             class="observing-note"
           >
-            You're observing this round — your vote won't be counted.
+            You're observing this round. Your opinions will be noted, and not counted.
           </p>
           <p
             v-else-if="room.phase === 'lobby'"

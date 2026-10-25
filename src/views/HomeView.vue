@@ -45,7 +45,7 @@ function handleJoin() {
   <main class="home">
     <h1>Planning Poker</h1>
     <p class="tagline">
-      Free, real-time sprint estimation. No accounts, no fuss.
+      Free, real-time sprint estimation. No accounts, no fuss, no promises about the estimates.
     </p>
 
     <section class="panel">
