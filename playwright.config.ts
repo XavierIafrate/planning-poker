@@ -23,7 +23,16 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // Every major browser except Safari. Edge runs the installed Microsoft Edge
+  // (not a Playwright build), and installing it needs root, so locally it's
+  // opt-in: `npx playwright install msedge`, then set E2E_EDGE=1.
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    ...(process.env.CI || process.env.E2E_EDGE
+      ? [{ name: 'msedge', use: { ...devices['Desktop Edge'], channel: 'msedge' } }]
+      : []),
+  ],
   webServer: {
     // A dedicated port, so an ordinary `npm run dev` pointed at the real
     // project is never mistaken for the test server. Vite is launched

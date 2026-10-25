@@ -1,54 +1,5 @@
-import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test'
-
-// Each person gets their own browser context, so they sign in as a separate
-// anonymous user — just like separate people on separate machines.
-interface Person {
-  context: BrowserContext
-  page: Page
-}
-
-async function newPerson(browser: Browser): Promise<Person> {
-  const context = await browser.newContext()
-  return { context, page: await context.newPage() }
-}
-
-async function joinAs(page: Page, name: string) {
-  await page.getByLabel('Your name').fill(name)
-  await page.getByRole('button', { name: 'Join and vote' }).click()
-  await expect(page.getByRole('heading', { name: 'At the table' })).toBeVisible()
-}
-
-/** Host creates a room, everyone joins, and voting opens on one ticket. */
-async function startVotingRoom(browser: Browser, guestNames: string[]) {
-  const host = await newPerson(browser)
-  await host.page.goto('./')
-  await host.page.getByRole('button', { name: 'Create room' }).click()
-  await host.page.waitForURL(/#\/room\/[A-Z0-9]{6}$/)
-  await joinAs(host.page, 'Host')
-
-  const guests: Person[] = []
-  for (const name of guestNames) {
-    const guest = await newPerson(browser)
-    await guest.page.goto(host.page.url())
-    await joinAs(guest.page, name)
-    guests.push(guest)
-  }
-
-  await host.page.getByPlaceholder('Paste ticket titles, one per line').fill('TICKET-1 Login page')
-  await host.page.getByRole('button', { name: 'Add to queue' }).click()
-  await host.page.getByRole('button', { name: 'Pick first ticket' }).click()
-  await host.page.getByRole('button', { name: 'Start voting' }).click()
-
-  return { host, guests }
-}
-
-function vote(page: Page, card: string) {
-  return page.getByRole('button', { name: card, exact: true }).click()
-}
-
-function row(page: Page, name: string) {
-  return page.locator('.participant', { hasText: name })
-}
+import { expect, test } from '@playwright/test'
+import { row, startVotingRoom, vote } from './support'
 
 test('a vote left behind by someone who closed their tab does not carry into the next round', async ({ browser }) => {
   const { host, guests: [alice, ghost] } = await startVotingRoom(browser, ['Alice', 'Ghost'])
