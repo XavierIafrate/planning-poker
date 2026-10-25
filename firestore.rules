@@ -26,6 +26,14 @@ service cloud.firestore {
       return value in ['lobby', 'discussion', 'voting', 'revealed'];
     }
 
+    // Must stay in sync with DECKS in src/constants/decks.ts.
+    function isCardInDeck(vote, deckId) {
+      return (deckId == 'fibonacci'
+          && vote in ['0', '1', '2', '3', '5', '8', '13', '21', '34', '55', '89', '?', 'raccoon'])
+        || (deckId == 'fibonacciModified'
+          && vote in ['0', '1', '2', '3', '5', '8', '13', '20', '40', '100', '?', 'raccoon']);
+    }
+
     match /rooms/{roomCode} {
       allow get: if isSignedIn();
       allow list: if false;
@@ -76,7 +84,9 @@ service cloud.firestore {
           && isJobRole(request.resource.data.jobRole)
           && (request.resource.data.vote == null
               || (request.resource.data.role == 'voter'
-                  && get(/databases/$(database)/documents/rooms/$(roomCode)).data.phase == 'voting'));
+                  && get(/databases/$(database)/documents/rooms/$(roomCode)).data.phase == 'voting'
+                  && isCardInDeck(request.resource.data.vote,
+                       get(/databases/$(database)/documents/rooms/$(roomCode)).data.deck)));
 
         allow delete: if isSignedIn() && uid == request.auth.uid;
       }
