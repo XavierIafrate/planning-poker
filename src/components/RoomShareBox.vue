@@ -21,8 +21,26 @@ async function copyLink() {
     <span class="code">{{ code }}</span>
     <BaseButton
       type="button"
+      class="copy"
       @click="copyLink"
     >
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      ><rect
+        x="9"
+        y="9"
+        width="12"
+        height="12"
+        rx="2"
+      /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
       {{ copied ? 'Copied!' : 'Copy link' }}
     </BaseButton>
   </div>
@@ -36,10 +54,17 @@ async function copyLink() {
 }
 
 .code {
-  font-family: monospace;
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1;
+  letter-spacing: 0.12em;
   color: var(--color-accent, var(--color-heading));
+}
+
+.copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
 }
 </style>

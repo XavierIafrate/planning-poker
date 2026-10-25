@@ -22,7 +22,7 @@ const formatted = computed(() => {
       class="dot"
       aria-hidden="true"
     />
-    {{ formatted }}
+    {{ running ? `${formatted} this round` : `Took ${formatted}` }}
   </span>
 </template>
 
@@ -33,7 +33,7 @@ const formatted = computed(() => {
   gap: 0.375rem;
   font-variant-numeric: tabular-nums;
   font-size: 0.875rem;
-  opacity: 0.75;
+  color: var(--color-text-muted);
 }
 
 .dot {

@@ -18,6 +18,11 @@ export interface RoundHistoryEntry {
   votes: { name: string; vote: string | null }[]
   average: number | null
   consensus: boolean
+  /**
+   * The card saved for this ticket; null when the round was voted again
+   * instead. Missing on entries recorded before estimates were saved.
+   */
+  estimate?: string | null
   revealedAt: Timestamp
 }
 

@@ -146,6 +146,23 @@ const SUITS = ['♠', '♥', '♦', '♣']
   border-color: var(--color-background);
 }
 
+/* Phones: one row that scrolls sideways, pinned to the bottom of the screen by the room */
+@media (max-width: 40rem) {
+  .deck {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    /* Headroom for the lifted selected card, which overflow would otherwise clip */
+    padding: 0.5rem 1rem 0.25rem;
+    margin: 0 -1rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .card {
+    flex-shrink: 0;
+    scroll-snap-align: center;
+  }
+}
+
 .check {
   position: absolute;
   top: 0.125rem;

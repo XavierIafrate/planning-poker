@@ -33,8 +33,14 @@
 
   --color-heading: var(--vt-c-text-light-1);
   --color-text: var(--vt-c-text-light-1);
+  /* Secondary text; a real colour rather than opacity so it keeps 4.5:1 */
+  --color-text-muted: #5f6b77;
 
   --color-accent: #15803d;
+  /* Calls attention to a vote worth discussing (highest/lowest) */
+  --color-warn-text: #9a3412;
+  --color-warn-bg: #fff7ed;
+  --color-warn-border: #fdba74;
 
   --font-display: 'VT323', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 
@@ -54,8 +60,12 @@
 
     --color-heading: var(--vt-c-text-dark-1);
     --color-text: var(--vt-c-text-dark-2);
+    --color-text-muted: rgba(235, 235, 235, 0.62);
 
     --color-accent: #4ade80;
+    --color-warn-text: #fdba74;
+    --color-warn-bg: rgba(251, 146, 60, 0.12);
+    --color-warn-border: rgba(251, 146, 60, 0.45);
 
     color-scheme: dark;
   }
@@ -71,8 +81,12 @@
 
   --color-heading: var(--vt-c-text-dark-1);
   --color-text: var(--vt-c-text-dark-2);
+  --color-text-muted: rgba(235, 235, 235, 0.62);
 
   --color-accent: #4ade80;
+  --color-warn-text: #fdba74;
+  --color-warn-bg: rgba(251, 146, 60, 0.12);
+  --color-warn-border: rgba(251, 146, 60, 0.45);
 
   color-scheme: dark;
 }

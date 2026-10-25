@@ -14,7 +14,8 @@ import {
 import { db } from '@/firebase/client'
 import { generateRoomCode } from '@/utils/roomCode'
 import { DEFAULT_ACCENT_COLOR } from '@/constants/theme'
-import { computeAverage, hasConsensus } from '@/utils/roundStats'
+import { DECKS } from '@/constants/decks'
+import { computeAverage, hasConsensus, suggestEstimate } from '@/utils/roundStats'
 import type { AccentColorId, DeckId, Room, RoomPhase, RoundHistoryEntry } from '@/types/room'
 import type { ParticipantWithId } from './useParticipants'
 import { useAuth } from './useAuth'
@@ -26,7 +27,8 @@ function expiryTimestamp(days: number): Timestamp {
   return Timestamp.fromMillis(Date.now() + days * 24 * 60 * 60 * 1000)
 }
 
-function buildHistoryEntry(room: Room, participants: ParticipantWithId[]): RoundHistoryEntry {
+/** `saved`: the round's suggested card is kept as the ticket's estimate, rather than voted again. */
+function buildHistoryEntry(room: Room, participants: ParticipantWithId[], saved: boolean): RoundHistoryEntry {
   // Away voters who never voted weren't really part of this round.
   const voters = participants.filter((p) => p.role === 'voter' && !(p.away && p.vote === null))
   const votes = voters.map((p) => p.vote)
@@ -36,6 +38,7 @@ function buildHistoryEntry(room: Room, participants: ParticipantWithId[]): Round
     votes: voters.map((p) => ({ name: p.name, vote: p.vote })),
     average: computeAverage(votes),
     consensus: hasConsensus(votes),
+    estimate: saved ? suggestEstimate(votes, DECKS[room.deck]) : null,
     revealedAt: Timestamp.now(),
   }
 }
@@ -117,7 +120,7 @@ export function useRoom(roomCode: Ref<string>) {
       lastActivityAt: serverTimestamp(),
       roundStartedAt: serverTimestamp(),
       ...(room.value?.phase === 'revealed'
-        ? { history: arrayUnion(buildHistoryEntry(room.value, participants)) }
+        ? { history: arrayUnion(buildHistoryEntry(room.value, participants, false)) }
         : {}),
     })
   }
@@ -162,8 +165,36 @@ export function useRoom(roomCode: Ref<string>) {
       lastActivityAt: serverTimestamp(),
       roundStartedAt: serverTimestamp(),
       ...(room.value?.phase === 'revealed'
-        ? { history: arrayUnion(buildHistoryEntry(room.value, participants)) }
+        ? { history: arrayUnion(buildHistoryEntry(room.value, participants, true)) }
         : {}),
+    })
+  }
+
+  // Sends the current ticket to the back of the queue and brings up the next.
+  async function skipTicket() {
+    const current = room.value
+    if (!current?.currentTicket || current.tickets.length === 0) return
+    const [next, ...rest] = current.tickets
+    await updateDoc(doc(db, 'rooms', roomCode.value), {
+      currentTicket: next,
+      tickets: [...rest, current.currentTicket],
+      phase: 'discussion' satisfies RoomPhase,
+      round: increment(1),
+      lastActivityAt: serverTimestamp(),
+      roundStartedAt: serverTimestamp(),
+    })
+  }
+
+  // Saves the last ticket's estimate and returns to the lobby for more tickets.
+  async function finishTicket(participants: ParticipantWithId[]) {
+    if (room.value?.phase !== 'revealed') return
+    await updateDoc(doc(db, 'rooms', roomCode.value), {
+      currentTicket: null,
+      phase: 'lobby' satisfies RoomPhase,
+      round: increment(1),
+      lastActivityAt: serverTimestamp(),
+      roundStartedAt: serverTimestamp(),
+      history: arrayUnion(buildHistoryEntry(room.value, participants, true)),
     })
   }
 
@@ -184,6 +215,8 @@ export function useRoom(roomCode: Ref<string>) {
     removeTicket,
     moveTicket,
     nextTicket,
+    skipTicket,
+    finishTicket,
     setAccentColor,
   }
 }

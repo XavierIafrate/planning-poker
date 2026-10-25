@@ -26,19 +26,23 @@ const swatches = computed(() =>
 <template>
   <div
     class="accent-picker"
-    role="group"
+    role="radiogroup"
     aria-label="Accent color"
   >
-    <span class="picker-label">Accent</span>
+    <span
+      class="picker-label"
+      aria-hidden="true"
+    >Accent</span>
     <button
       v-for="swatch in swatches"
       :key="swatch.id"
       type="button"
       class="swatch"
       :class="{ active: swatch.id === modelValue }"
-      :style="{ backgroundColor: swatch.hex }"
+      :style="{ backgroundColor: swatch.hex, '--swatch': swatch.hex }"
+      role="radio"
       :aria-label="swatch.label"
-      :aria-pressed="swatch.id === modelValue"
+      :aria-checked="swatch.id === modelValue"
       :title="swatch.label"
       @click="emit('update:modelValue', swatch.id)"
     >
@@ -60,15 +64,15 @@ const swatches = computed(() =>
 
 .picker-label {
   font-size: 0.8125rem;
-  opacity: 0.8;
+  color: var(--color-text-muted);
   margin-right: 0.125rem;
 }
 
 .swatch {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: 50%;
-  border: 1px solid var(--color-border);
+  border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -77,13 +81,13 @@ const swatches = computed(() =>
 }
 
 .swatch.active {
-  box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--color-text);
+  box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--swatch);
 }
 
 .check {
-  color: #fff;
+  /* White on the dark light-mode shades, near-black on the pale dark-mode ones */
+  color: var(--color-background);
   font-size: 0.75rem;
   font-weight: 700;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
 }
 </style>

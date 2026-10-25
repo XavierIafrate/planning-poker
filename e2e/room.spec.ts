@@ -14,8 +14,8 @@ async function newPerson(browser: Browser): Promise<Person> {
 
 async function joinAs(page: Page, name: string) {
   await page.getByLabel('Your name').fill(name)
-  await page.getByRole('button', { name: 'Join to vote' }).click()
-  await expect(page.getByRole('heading', { name: 'Participants' })).toBeVisible()
+  await page.getByRole('button', { name: 'Join and vote' }).click()
+  await expect(page.getByRole('heading', { name: 'At the table' })).toBeVisible()
 }
 
 /** Host creates a room, everyone joins, and voting opens on one ticket. */
@@ -56,13 +56,13 @@ test('a vote left behind by someone who closed their tab does not carry into the
   await vote(ghost!.page, '3')
   await vote(alice!.page, '5')
   await vote(host.page, '5')
-  await expect(host.page.getByRole('button', { name: 'New round' })).toBeVisible()
+  await expect(host.page.getByRole('button', { name: 'Vote again' })).toBeVisible()
 
   // Ghost leaves with their "3" still saved — their client can't clear it.
   await ghost!.context.close()
-  await host.page.getByRole('button', { name: 'New round' }).click()
+  await host.page.getByRole('button', { name: 'Vote again' }).click()
   await host.page.getByRole('button', { name: 'Start voting' }).click()
-  await expect(row(host.page, 'Ghost').locator('.vote')).toHaveText('…')
+  await expect(row(host.page, 'Ghost').locator('.vote')).toHaveText('Thinking…')
 
   await vote(alice!.page, '8')
   await vote(host.page, '8')
@@ -71,7 +71,7 @@ test('a vote left behind by someone who closed their tab does not carry into the
   // Ghost holds the round open until they're marked away, then the reveal
   // countdown runs, so this needs longer than the default timeout.
   await expect(host.page.getByText('Consensus — everyone picked 8')).toBeVisible({ timeout: 15_000 })
-  await expect(row(host.page, 'Ghost').locator('.vote')).toHaveText('—')
+  await expect(row(host.page, 'Ghost').locator('.vote')).toHaveText('No vote')
 })
 
 test('someone who goes away stops blocking auto-reveal, and the host can remove them', async ({ browser }) => {
@@ -89,8 +89,8 @@ test('someone who goes away stops blocking auto-reveal, and the host can remove 
   await ghost!.context.close()
   await expect(row(host.page, 'Ghost').getByText('Away')).toBeVisible()
   await expect(row(alice!.page, 'Ghost').getByText('Away')).toBeVisible()
-  await expect(host.page.getByRole('button', { name: 'New round' })).toBeVisible()
-  await expect(host.page.getByText('Average (numeric votes): 6.5')).toBeVisible()
+  await expect(host.page.getByRole('button', { name: 'Vote again' })).toBeVisible()
+  await expect(host.page.locator('.stat', { hasText: 'Average' })).toContainText('6.5')
 
   // Only the host gets remove buttons.
   await expect(alice!.page.getByRole('button', { name: /^Remove / })).toHaveCount(0)

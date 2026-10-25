@@ -7,20 +7,19 @@ import { useTheme } from '@/composables/useTheme'
 import { useRoundTimer } from '@/composables/useRoundTimer'
 import { DECKS } from '@/constants/decks'
 import { ACCENT_COLORS } from '@/constants/theme'
-import { hasConsensus } from '@/utils/roundStats'
+import { hasConsensus, suggestEstimate } from '@/utils/roundStats'
 import NameEntryModal from '@/components/NameEntryModal.vue'
+import RoomNotFound from '@/components/RoomNotFound.vue'
 import CardDeck from '@/components/CardDeck.vue'
 import ParticipantList from '@/components/ParticipantList.vue'
-import HostControls from '@/components/HostControls.vue'
+import TicketHero from '@/components/TicketHero.vue'
 import RevealSummary from '@/components/RevealSummary.vue'
 import RoomShareBox from '@/components/RoomShareBox.vue'
-import TicketQueue from '@/components/TicketQueue.vue'
+import RoomSidebar from '@/components/RoomSidebar.vue'
 import AccentPicker from '@/components/AccentPicker.vue'
-import RoundHistory from '@/components/RoundHistory.vue'
 import RoundTimer from '@/components/RoundTimer.vue'
 import ConfettiBurst from '@/components/ConfettiBurst.vue'
-import JobRolePicker from '@/components/JobRolePicker.vue'
-import BaseButton from '@/components/base/BaseButton.vue'
+import SelfMenu from '@/components/SelfMenu.vue'
 
 const route = useRoute()
 const code = computed(() => String(route.params.code))
@@ -35,6 +34,8 @@ const {
   removeTicket,
   moveTicket,
   nextTicket,
+  skipTicket,
+  finishTicket,
   setAccentColor,
 } = useRoom(code)
 const round = computed(() => room.value?.round)
@@ -138,6 +139,27 @@ watch(revealReady, (ready) => {
     showConfetti.value = true
   }
 })
+
+const votedCount = computed(() => voters.value.filter((p) => p.vote !== null).length)
+const estimate = computed(() => suggestEstimate(votes.value, deck.value))
+
+// "Ticket 2 of 5": tickets already estimated, this one, and what's queued.
+const ticketPosition = computed(() => {
+  const current = room.value
+  if (!current?.currentTicket) return null
+  const finished = new Set(
+    (current.history ?? [])
+      .filter((entry) => entry.ticket && entry.estimate !== null && entry.ticket !== current.currentTicket)
+      .map((entry) => entry.ticket),
+  )
+  const number = finished.size + 1
+  return { number, total: number + current.tickets.length }
+})
+
+function saveEstimate() {
+  if (room.value?.tickets.length) nextTicket(participants.value)
+  else finishTicket(participants.value)
+}
 </script>
 
 <template>
@@ -148,12 +170,16 @@ watch(revealReady, (ready) => {
     <template v-if="roomLoading || participantsLoading">
       <p>Loading…</p>
     </template>
-    <template v-else-if="!room">
-      <p>Room not found. Double-check the link or code, or assume everyone's gone to put the kettle on.</p>
-    </template>
+    <RoomNotFound
+      v-else-if="!room"
+      :code="code"
+    />
     <template v-else>
       <NameEntryModal
         v-if="!self"
+        :room-code="code"
+        :present="participants.map((p) => p.name)"
+        :current-ticket="room.currentTicket"
         @submit="joinRoom"
       />
 
@@ -164,125 +190,128 @@ watch(revealReady, (ready) => {
           @done="showConfetti = false"
         />
 
-        <div class="room-header">
-          <RoomShareBox :code="code" />
-          <RoundTimer
-            :seconds="elapsedSeconds"
-            :running="room.phase === 'discussion' || room.phase === 'voting'"
-          />
-          <AccentPicker
-            v-if="isHost"
-            :model-value="room.accentColor"
-            @update:model-value="setAccentColor"
-          />
-          <HostControls
-            v-if="isHost"
-            :phase="room.phase"
-            @start-voting="startVoting"
-            @reveal="revealVotes"
-            @reset="resetRound(participants)"
+        <div class="layout">
+          <div class="main">
+            <div class="toolbar">
+              <RoomShareBox :code="code" />
+              <RoundTimer
+                v-if="room.phase !== 'lobby'"
+                :seconds="elapsedSeconds"
+                :running="room.phase === 'discussion' || room.phase === 'voting'"
+              />
+              <AccentPicker
+                v-if="isHost"
+                class="accent"
+                :model-value="room.accentColor"
+                @update:model-value="setAccentColor"
+              />
+            </div>
+
+            <TicketHero
+              :phase="room.phase"
+              :ticket="room.currentTicket"
+              :position="ticketPosition"
+              :is-host="isHost"
+              :voted-count="votedCount"
+              :voter-count="voters.length"
+              :queue-length="room.tickets.length"
+              :estimate="estimate"
+              @pick-first="nextTicket(participants)"
+              @start-voting="startVoting"
+              @reveal="revealVotes"
+              @skip="skipTicket"
+              @vote-again="resetRound(participants)"
+              @save="saveEstimate"
+            >
+              <p
+                v-if="countdownValue !== null"
+                :key="countdownValue"
+                class="countdown"
+                aria-live="polite"
+              >
+                {{ countdownValue }}
+              </p>
+              <RevealSummary
+                v-if="revealed && revealReady"
+                :participants="participants"
+                :deck="deck"
+              />
+            </TicketHero>
+
+            <section
+              class="table"
+              aria-labelledby="table-heading"
+            >
+              <h2 id="table-heading">
+                At the table
+              </h2>
+              <ParticipantList
+                :participants="participants"
+                :phase="room.phase"
+                :revealed="revealed && revealReady"
+                :self-uid="self.uid"
+                :host-uid="room.hostUid"
+                :can-remove="isHost"
+                @remove="removeParticipant"
+              />
+            </section>
+
+            <section
+              class="vote-section"
+              aria-labelledby="vote-heading"
+            >
+              <div class="section-header">
+                <h2 id="vote-heading">
+                  Your vote
+                </h2>
+                <SelfMenu
+                  :name="self.name"
+                  :job-role="self.jobRole"
+                  :role="self.role"
+                  @update:job-role="setJobRole"
+                  @update:role="setRole"
+                />
+              </div>
+              <p
+                v-if="self.role === 'observer'"
+                class="phase-note"
+              >
+                You're observing this round. Your opinions will be noted, and not counted.
+              </p>
+              <p
+                v-else-if="room.phase === 'lobby'"
+                class="phase-note"
+              >
+                Voting opens once a ticket is up for discussion.
+              </p>
+              <p
+                v-else-if="room.phase === 'discussion'"
+                class="phase-note"
+              >
+                Discuss the ticket —
+                {{ isHost ? 'click "Start voting" when you\'re ready.' : 'the host will open voting shortly.' }}
+              </p>
+              <CardDeck
+                v-else
+                :cards="deck"
+                :selected="self.vote"
+                :disabled="room.phase === 'revealed'"
+                @select="castVote"
+              />
+            </section>
+          </div>
+
+          <RoomSidebar
+            class="sidebar"
+            :room-code="code"
+            :tickets="room.tickets"
+            :history="room.history ?? []"
+            :is-host="isHost"
+            @add="addTickets"
+            @remove="removeTicket"
+            @move="moveTicket"
           />
         </div>
-
-        <TicketQueue
-          v-if="isHost"
-          :tickets="room.tickets"
-          :current-ticket="room.currentTicket"
-          @add="addTickets"
-          @remove="removeTicket"
-          @move="moveTicket"
-          @next="nextTicket(participants)"
-        />
-
-        <p
-          v-if="room.currentTicket"
-          class="current-ticket"
-        >
-          {{ room.phase === 'discussion' ? 'Now discussing' : 'Now estimating' }}:
-          <strong>{{ room.currentTicket }}</strong>
-        </p>
-        <p
-          v-else
-          class="phase-note"
-        >
-          Waiting for {{ isHost ? 'you to add and pick' : 'the host to pick' }} a ticket to get started.
-        </p>
-
-        <p
-          v-if="countdownValue !== null"
-          :key="countdownValue"
-          class="countdown"
-          aria-live="polite"
-        >
-          {{ countdownValue }}
-        </p>
-
-        <RevealSummary
-          v-if="revealed && revealReady"
-          :participants="participants"
-        />
-
-        <section>
-          <h2>Participants</h2>
-          <ParticipantList
-            :participants="participants"
-            :revealed="revealed && revealReady"
-            :self-uid="self.uid"
-            :can-remove="isHost"
-            @remove="removeParticipant"
-          />
-        </section>
-
-        <section>
-          <div class="section-header">
-            <h2>Your vote</h2>
-            <div class="self-controls">
-              <JobRolePicker
-                :model-value="self.jobRole"
-                @update:model-value="setJobRole"
-              />
-              <BaseButton
-                variant="ghost"
-                type="button"
-                class="role-toggle"
-                @click="setRole(self.role === 'observer' ? 'voter' : 'observer')"
-              >
-                {{ self.role === 'observer' ? 'Switch to voting' : 'Switch to observing' }}
-              </BaseButton>
-            </div>
-          </div>
-          <p
-            v-if="self.role === 'observer'"
-            class="observing-note"
-          >
-            You're observing this round. Your opinions will be noted, and not counted.
-          </p>
-          <p
-            v-else-if="room.phase === 'lobby'"
-            class="phase-note"
-          >
-            Voting opens once a ticket is up for discussion.
-          </p>
-          <p
-            v-else-if="room.phase === 'discussion'"
-            class="phase-note"
-          >
-            Discuss the ticket —
-            {{ isHost ? 'click "Start voting" when you\'re ready.' : 'the host will open voting shortly.' }}
-          </p>
-          <CardDeck
-            v-else
-            :cards="deck"
-            :selected="self.vote"
-            :disabled="room.phase === 'revealed'"
-            @select="castVote"
-          />
-        </section>
-
-        <section v-if="room.history?.length">
-          <h2>Round history</h2>
-          <RoundHistory :history="room.history" />
-        </section>
       </template>
     </template>
   </main>
@@ -290,67 +319,69 @@ watch(revealReady, (ready) => {
 
 <style scoped>
 .room {
-  max-width: 56rem;
+  width: 100%;
+  max-width: 76rem;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 1.5rem;
+}
+
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.main {
+  flex: 999 1 34rem;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.room-header {
+.sidebar {
+  flex: 1 1 17rem;
+  max-width: 21rem;
+}
+
+.toolbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.75rem 1rem;
+}
+
+.accent {
+  margin-left: auto;
 }
 
 h2 {
-  font-size: 0.875rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.7;
-  margin-bottom: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin-bottom: 0.75rem;
 }
 
 .section-header h2 {
   margin-bottom: 0;
+  flex-shrink: 0;
 }
 
-.self-controls {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.observing-note,
 .phase-note {
-  opacity: 0.7;
-  font-size: 0.875rem;
-}
-
-.current-ticket {
   margin: 0;
-}
-
-.current-ticket strong {
-  color: var(--color-accent);
-}
-
-/* Without this, sections grow to fit wide content (e.g. history table) instead of scrolling */
-.room > section {
-  min-width: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
 }
 
 .countdown {
@@ -378,6 +409,31 @@ h2 {
   100% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+/* Sidebar drops below the main column; let it use the full width */
+@media (max-width: 60rem) {
+  .sidebar {
+    max-width: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  .room {
+    padding: 1rem;
+  }
+
+  /* Keep the deck within thumb reach while scrolling the table */
+  .vote-section {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    margin: 0 -1rem;
+    padding: 0.75rem 1rem 1rem;
+    border-top: 1px solid var(--color-border);
+    background: var(--color-background-soft);
+    box-shadow: 0 -6px 16px -10px rgba(0, 0, 0, 0.25);
   }
 }
 </style>

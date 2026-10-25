@@ -5,14 +5,14 @@ import BaseTextarea from '@/components/base/BaseTextarea.vue'
 
 defineProps<{
   tickets: string[]
-  currentTicket: string | null
+  /** Hosts can add, reorder and remove; everyone else just sees what's coming. */
+  editable: boolean
 }>()
 
 const emit = defineEmits<{
   add: [titles: string[]]
   remove: [title: string]
   move: [index: number, direction: 'up' | 'down']
-  next: []
 }>()
 
 const input = ref('')
@@ -27,27 +27,7 @@ function handleAdd() {
 
 <template>
   <div class="queue">
-    <h2>Ticket queue</h2>
-
-    <form
-      class="add-form"
-      @submit.prevent="handleAdd"
-    >
-      <BaseTextarea
-        v-model="input"
-        placeholder="Paste ticket titles, one per line"
-        aria-label="Ticket titles"
-        rows="3"
-      />
-      <BaseButton
-        type="submit"
-        class="add-button"
-      >
-        Add to queue
-      </BaseButton>
-    </form>
-
-    <ul
+    <ol
       v-if="tickets.length"
       class="upcoming"
     >
@@ -55,12 +35,15 @@ function handleAdd() {
         v-for="(ticket, index) in tickets"
         :key="ticket"
       >
-        <span>{{ ticket }}</span>
-        <div class="ticket-actions">
+        <span class="title">{{ ticket }}</span>
+        <div
+          v-if="editable"
+          class="ticket-actions"
+        >
           <BaseButton
             variant="ghost"
             type="button"
-            class="reorder"
+            class="icon-button"
             aria-label="Move ticket up"
             :disabled="index === 0"
             @click="emit('move', index, 'up')"
@@ -70,7 +53,7 @@ function handleAdd() {
           <BaseButton
             variant="ghost"
             type="button"
-            class="reorder"
+            class="icon-button"
             aria-label="Move ticket down"
             :disabled="index === tickets.length - 1"
             @click="emit('move', index, 'down')"
@@ -80,7 +63,7 @@ function handleAdd() {
           <BaseButton
             variant="ghost"
             type="button"
-            class="remove"
+            class="icon-button"
             aria-label="Remove ticket"
             @click="emit('remove', ticket)"
           >
@@ -88,47 +71,41 @@ function handleAdd() {
           </BaseButton>
         </div>
       </li>
-    </ul>
-
-    <BaseButton
-      variant="primary"
-      type="button"
-      class="next"
-      :disabled="tickets.length === 0"
-      @click="emit('next')"
+    </ol>
+    <p
+      v-else
+      class="empty"
     >
-      {{ currentTicket ? 'Next ticket' : 'Pick first ticket' }}
-    </BaseButton>
+      Nothing queued.
+    </p>
+
+    <form
+      v-if="editable"
+      class="add-form"
+      @submit.prevent="handleAdd"
+    >
+      <label
+        for="add-tickets"
+        class="add-label"
+      >Add tickets</label>
+      <BaseTextarea
+        id="add-tickets"
+        v-model="input"
+        placeholder="Paste ticket titles, one per line"
+        rows="3"
+      />
+      <BaseButton type="submit">
+        Add to queue
+      </BaseButton>
+    </form>
   </div>
 </template>
 
 <style scoped>
 .queue {
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
-  padding: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-}
-
-.queue h2 {
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.7;
-  margin: 0;
-}
-
-.add-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.add-button,
-.next {
-  align-self: flex-start;
+  gap: 1rem;
 }
 
 .upcoming {
@@ -137,37 +114,57 @@ function handleAdd() {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 0.5rem;
 }
 
 .upcoming li {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
-  padding: 0.375rem 0.5rem;
+  padding: 0.5rem 0.375rem 0.5rem 0.625rem;
   border: 1px solid var(--color-border);
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0.125rem;
+  overflow-wrap: anywhere;
 }
 
 .ticket-actions {
   display: flex;
-  align-items: center;
-  gap: 0.25rem;
   flex-shrink: 0;
 }
 
-.reorder,
-.remove {
-  opacity: 0.8;
+.icon-button {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  color: var(--color-text-muted);
 }
 
-.reorder:hover:not(:disabled),
-.remove:hover {
-  opacity: 1;
+.icon-button:hover:not(:disabled) {
+  color: var(--color-heading);
 }
 
-.reorder:disabled {
-  opacity: 0.25;
+.empty {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.add-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-heading);
 }
 </style>
